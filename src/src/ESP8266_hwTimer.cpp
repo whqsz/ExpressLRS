@@ -22,9 +22,11 @@ uint32_t hwTimer::LastCallbackMicrosTock = 0;
 void ICACHE_RAM_ATTR hwTimer::init()
 {
     noInterrupts();
-    timer1_attachInterrupt(hwTimer::callback);
-    timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP); //5MHz ticks
-    timer1_write(hwTimer::HWtimerInterval);       //120000 us
+
+    timer0_isr_init();
+    timer0_attachInterrupt(hwTimer::callback);
+    //timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP); //5MHz ticks
+    timer0_write(80000000);
     interrupts();
 }
 
@@ -42,7 +44,7 @@ void ICACHE_RAM_ATTR hwTimer::updateInterval(uint32_t Interval)
 {
     //hwTimer::HWtimerInterval = newTimerInterval * 5;
     //timer1_write(hwTimer::HWtimerInterval >> 1);
-    hwTimer::newHWtimerInterval = Interval * 5;
+    hwTimer::newHWtimerInterval = Interval * 80;
     hwTimer::NewIntervalReq = true;
 }
 
@@ -68,12 +70,12 @@ void ICACHE_RAM_ATTR hwTimer::phaseShift(int32_t ReqPhaseShift)
     // {
     //     NewPhaseShift = ReqPhaseShift;
     // }
-    hwTimer::PhaseShift = ReqPhaseShift * 5;
+    hwTimer::PhaseShift = ReqPhaseShift;
 }
 
 void ICACHE_RAM_ATTR hwTimer::callback()
 {
-
+    noInterrupts();
     if (hwTimer::TickTock)
     {
         //uint32_t timerVal;
@@ -83,14 +85,14 @@ void ICACHE_RAM_ATTR hwTimer::callback()
             hwTimer::NewIntervalReq = false;
             hwTimer::HWtimerInterval = hwTimer::newHWtimerInterval;
 
-            if (newHWtimerInterval < HWtimerInterval)
-            {
-                hwTimer::PhaseShift = hwTimer::HWtimerInterval >> 4;
-            }
-            else
-            {
-                hwTimer::PhaseShift = -hwTimer::HWtimerInterval >> 4;
-            }
+            // if (newHWtimerInterval < HWtimerInterval)
+            // {
+            //     hwTimer::PhaseShift = hwTimer::HWtimerInterval;
+            // }
+            // else
+            // {
+            //     hwTimer::PhaseShift = -hwTimer::HWtimerInterval;
+            // }
         }
 
         // if (hwTimer::ResetNextLoop)
@@ -102,7 +104,7 @@ void ICACHE_RAM_ATTR hwTimer::callback()
         // }
         // else
         // {
-        timer1_write((hwTimer::HWtimerInterval >> 1) + hwTimer::PhaseShift);
+        timer0_write((hwTimer::HWtimerInterval >> 1) + hwTimer::PhaseShift);
 
         // if (hwTimer::PhaseShift > 0 || hwTimer::PhaseShift < 0)
         // {2
@@ -113,15 +115,25 @@ void ICACHE_RAM_ATTR hwTimer::callback()
         //     hwTimer::PhaseShift = 0;
         // }
 
-        hwTimer::LastCallbackMicrosTick = micros();
+        //hwTimer::LastCallbackMicrosTick = micros();
+
+        hwTimer::LastCallbackMicrosTick = ESP.getCycleCount();
         hwTimer::callbackTick();
     }
     else
     {
-        hwTimer::LastCallbackMicrosTock = micros();
+
+        //hwTimer::LastCallbackMicrosTock = micros();
+
+        //timer1_write((hwTimer::HWtimerInterval >> 1));
+
+        hwTimer::LastCallbackMicrosTock = ESP.getCycleCount();
+        timer0_write((hwTimer::HWtimerInterval >> 1) + hwTimer::PhaseShift);
         hwTimer::callbackTock();
+
         //timer1_write(hwTimer::HWtimerInterval >> 1);
         //timer1_write((hwTimer::HWtimerInterval >> 1) + hwTimer::PhaseShift);
     }
     hwTimer::TickTock = !hwTimer::TickTock;
+    interrupts();
 }

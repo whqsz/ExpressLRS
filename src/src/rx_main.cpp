@@ -311,7 +311,7 @@ void ICACHE_RAM_ATTR ProcessRFPacket()
 
             case 0b00: //Standard RC Data Packet
                 UnpackChannelData_11bit();
-                crsf.sendRCFrameToFC();
+                //crsf.sendRCFrameToFC();
                 break;
 
             case 0b01:                                                                                                    // Switch Data Packet
@@ -320,7 +320,7 @@ void ICACHE_RAM_ATTR ProcessRFPacket()
                     UnpackSwitchData();
                     NonceRXlocal = Radio.RXdataBuffer[5];
                     FHSSsetCurrIndex(Radio.RXdataBuffer[6]);
-                    crsf.sendRCFrameToFC();
+                    //crsf.sendRCFrameToFC();
                 }
                 break;
 
@@ -358,10 +358,13 @@ void ICACHE_RAM_ATTR ProcessRFPacket()
 
             addPacketToLQ();
 
-            HWtimerError = ((micros() - hwTimer.LastCallbackMicrosTick) % ExpressLRS_currAirRate.interval);
-            Offset = LPF_Offset.update(HWtimerError - (ExpressLRS_currAirRate.interval >> 1)); //crude 'locking function' to lock hardware timer to transmitter, seems to work well enough
-                                                                                               //Offset = HWtimerError - (ExpressLRS_currAirRate.interval >> 1); //crude 'locking function' to lock hardware timer to transmitter, seems to work well enough
-                                                                                               //hwTimer.phaseShift((int32_t(Offset >> 3)) + timerOffset);
+            HWtimerError = ((ESP.getCycleCount() - hwTimer.LastCallbackMicrosTick) % (ExpressLRS_currAirRate.interval * 80));
+            Offset = LPF_Offset.update(HWtimerError - (ExpressLRS_currAirRate.interval * 40));
+
+            //HWtimerError = ((micros() - hwTimer.LastCallbackMicrosTick) % ExpressLRS_currAirRate.interval);
+            //Offset = LPF_Offset.update(HWtimerError - (ExpressLRS_currAirRate.interval >> 1)); //crude 'locking function' to lock hardware timer to transmitter, seems to work well enough
+            //Offset = HWtimerError - (ExpressLRS_currAirRate.interval >> 1); //crude 'locking function' to lock hardware timer to transmitter, seems to work well enough
+            //hwTimer.phaseShift((int32_t(Offset >> 3)) + timerOffset);
 #ifdef PLATFORM_STM32
 
             if (ExpressLRS_currAirRate.enum_rate == RATE_50HZ)
@@ -376,11 +379,11 @@ void ICACHE_RAM_ATTR ProcessRFPacket()
 #ifdef PLATFORM_ESP8266
             if (ExpressLRS_currAirRate.enum_rate == RATE_50HZ)
             {
-                hwTimer.phaseShift(int32_t(Offset >> 4) + timerOffset);
+                hwTimer.phaseShift(int32_t(Offset >> 3) + timerOffset);
             }
             else
             {
-                hwTimer.phaseShift((int32_t(Offset >> 4) + timerOffset));
+                hwTimer.phaseShift((int32_t(Offset >> 2) + timerOffset));
             }
 #endif
 
@@ -429,10 +432,10 @@ void ICACHE_RAM_ATTR ProcessRFPacket()
             //Serial.print(" : ");
             //Serial.println(Offset);
             //Serial.println("");
-            //Serial.print("Offset: ");
-            //Serial.println(Offset);
-            // Serial.print(" LQ: ");
-            // Serial.println(linkQuality);
+            Serial.print("Offset: ");
+            Serial.print(Offset / 80);
+            Serial.print(" LQ: ");
+            Serial.println(linkQuality);
             //Serial.print(":");
             //Serial.println(PacketInterval);
         }
@@ -620,7 +623,7 @@ void loop()
 
     if ((millis() > (SendLinkStatstoFCintervalLastSent + SendLinkStatstoFCinterval)) && connectionState != disconnected)
     {
-        crsf.sendLinkStatisticsToFC();
+        //crsf.sendLinkStatisticsToFC();
         SendLinkStatstoFCintervalLastSent = millis();
     }
 
