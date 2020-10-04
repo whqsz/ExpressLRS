@@ -4,6 +4,8 @@
 #include "common.h"
 #include "LowPassFilter.h"
 
+#define TARGET_R9M_RX 1
+#define Regulatory_Domain_EU_868 1
 #if defined(Regulatory_Domain_AU_915) || defined(Regulatory_Domain_EU_868) || defined(Regulatory_Domain_FCC_915) || defined(Regulatory_Domain_AU_433) || defined(Regulatory_Domain_EU_433)
 #include "SX127xDriver.h"
 SX127xDriver Radio;
@@ -16,6 +18,7 @@ SX1280Driver Radio;
 
 #include "crc.h"
 #include "CRSF.h"
+#include <Telemetry.h>
 #include "FHSS.h"
 // #include "Debug.h"
 #include "OTA.h"
@@ -60,6 +63,7 @@ GENERIC_CRC8 ota_crc(ELRS_CRC_POLY);
 CRSF crsf(Serial); //pass a serial port object to the class for it to use
 ELRS_EEPROM eeprom;
 RxConfig config;
+Telemetry telemetry;
 
 /// Filters ////////////////
 LPF LPF_Offset(2);
@@ -164,7 +168,7 @@ void SetRFLinkRate(uint8_t index) // Set speed of RF link (hz)
     {
         return;
     }
-    
+
     if (!LockRFmode)
     {
         expresslrs_mod_settings_s *const ModParams = get_elrs_airRateConfig(index);
@@ -437,7 +441,7 @@ void ICACHE_RAM_ATTR UnpackMSPData()
     packet.addByte(Radio.RXdataBuffer[4]);
     packet.addByte(Radio.RXdataBuffer[5]);
     packet.addByte(Radio.RXdataBuffer[6]);
-    
+
     if (packet.function == MSP_ELRS_BIND)
     {
         OnELRSBindMSP(&packet);
@@ -622,12 +626,12 @@ void sampleButton()
         buttonDown = true;
     }
 
-    if (buttonValue == true && buttonPrevValue == false) 
+    if (buttonValue == true && buttonPrevValue == false)
     { //rising edge
         buttonDown = false;
     }
 
-    if ((millis() > buttonLastPressed + WEB_UPDATE_PRESS_INTERVAL) && buttonDown) 
+    if ((millis() > buttonLastPressed + WEB_UPDATE_PRESS_INTERVAL) && buttonDown)
     { // button held down for WEB_UPDATE_PRESS_INTERVAL
         if (!webUpdateMode)
         {
@@ -870,7 +874,7 @@ void loop()
     }
 
 #ifdef FAST_SYNC
-    if (millis() > (RFmodeLastCycled + (ExpressLRS_currAirRate_RFperfParams->RFmodeCycleInterval/RFmodeCycleDivisor))) 
+    if (millis() > (RFmodeLastCycled + (ExpressLRS_currAirRate_RFperfParams->RFmodeCycleInterval/RFmodeCycleDivisor)))
 #else
         if (millis() > (RFmodeLastCycled + (ExpressLRS_currAirRate_RFperfParams->RFmodeCycleInterval)))
 #endif
@@ -936,6 +940,7 @@ void loop()
         #endif
     }
 
+<<<<<<< HEAD
 #if WS2812_LED_IS_USED
     if ((connectionState == disconnected) && (millis() > LEDupdateInterval + LEDupdateCounterMillis))
     {
@@ -969,7 +974,7 @@ void loop()
     {
         config.SetPowerOnCounter(0);
         config.Commit();
-        
+
         Serial.println("Power on counter >=3, enter binding mode...");
         EnterBindingMode();
     }
@@ -1001,12 +1006,12 @@ void loop()
                 bindLedFlashInterval = millis() + BIND_LED_FLASH_INTERVAL_LONG;
                 LEDPulseCounter = 0;
             }
-            
-            
+
+
             #ifdef GPIO_PIN_LED
             digitalWrite(GPIO_PIN_LED, LED);
             #endif
-            
+
             LEDPulseCounter++;
         }
     }
@@ -1100,4 +1105,10 @@ void OnELRSBindMSP(mspPacket_t *packet)
 
     disableWebServer = true;
     ExitBindingMode();
+=======
+    while (Serial.available())
+    {
+        telemetry.RXhandleUARTin(Serial.read());
+    }
+>>>>>>> use new telemetry lib
 }
