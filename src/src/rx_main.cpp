@@ -940,7 +940,6 @@ void loop()
         #endif
     }
 
-<<<<<<< HEAD
 #if WS2812_LED_IS_USED
     if ((connectionState == disconnected) && (millis() > LEDupdateInterval + LEDupdateCounterMillis))
     {
@@ -1013,6 +1012,23 @@ void loop()
             #endif
 
             LEDPulseCounter++;
+        }
+    }
+
+    while (Serial.available())
+    {
+        telemetry.RXhandleUARTin(Serial.read());
+
+        if (telemetry.callBootloader)
+        {
+            #if defined(PLATFORM_STM32)
+                delay(100);
+                Serial.println("Jumping to Bootloader...");
+                delay(100);
+                HAL_NVIC_SystemReset();
+            #endif
+
+            telemetry.callBootloader = false;
         }
     }
 }
@@ -1105,10 +1121,4 @@ void OnELRSBindMSP(mspPacket_t *packet)
 
     disableWebServer = true;
     ExitBindingMode();
-=======
-    while (Serial.available())
-    {
-        telemetry.RXhandleUARTin(Serial.read());
-    }
->>>>>>> use new telemetry lib
 }
