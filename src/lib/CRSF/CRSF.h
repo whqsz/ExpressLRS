@@ -339,12 +339,6 @@ public:
 
     static volatile uint8_t ParameterUpdateData[2];
 
-    static uint8_t CSFR_TXpin_Module;
-    static uint8_t CSFR_RXpin_Module;
-
-    static uint8_t CSFR_TXpin_Recv;
-    static uint8_t CSFR_RXpin_Recv;
-
     /////Variables/////
 
     static volatile crsf_channels_s PackedRCdataOut;            // RC data in packed format for output.

@@ -37,9 +37,16 @@ SX1280Driver Radio;
 
 #if defined(TARGET_R9M_TX) || defined(TARGET_NAMIMNO_ALPHA_TX)
 #include "DAC.h"
+R9DAC R9DAC;
+#endif
+
+#if defined(GPIO_PIN_BUTTON) && (GPIO_PIN_BUTTON != UNDEF_PIN)
 #include "button.h"
 button button;
-R9DAC R9DAC;
+#endif
+
+#if (GPIO_PIN_LED_WS2812 != UNDEF_PIN) && (GPIO_PIN_LED_WS2812_FAST != UNDEF_PIN)
+#include "STM32F3_WS2812B_LED.h"
 #endif
 
 #if defined(TARGET_R9M_LITE_TX) || (TARGET_R9M_LITE_PRO_TX)
@@ -285,7 +292,7 @@ void ICACHE_RAM_ATTR HandleFHSS()
   {
     return;
   }
-  
+
   uint8_t modresult = (NonceTX) % ExpressLRS_currAirRate_Modparams->FHSShopInterval;
 
   if (modresult == 0) // if it time to hop, do so.
@@ -399,7 +406,7 @@ void sendLuaParams()
 
 void UARTdisconnected()
 {
-  #ifdef TARGET_R9M_TX
+#ifdef GPIO_PIN_BUZZER && (GPIO_PIN_BUZZER != UNDEF_PIN)
   const uint16_t beepFreq[] = {676, 520};
   const uint16_t beepDurations[] = {300, 150};
   for (int i = 0; i < 2; i++)
@@ -408,13 +415,13 @@ void UARTdisconnected()
     delay(beepDurations[i]);
     noTone(GPIO_PIN_BUZZER);
   }
-  #endif
+#endif /* GPIO_PIN_BUZZER */
   hwTimer.stop();
 }
 
 void UARTconnected()
 {
-  #ifdef TARGET_R9M_TX
+#ifdef GPIO_PIN_BUZZER
   const uint16_t beepFreq[] = {520, 676};
   const uint16_t beepDurations[] = {150, 300};
   for (int i = 0; i < 2; i++)
@@ -423,7 +430,7 @@ void UARTconnected()
     delay(beepDurations[i]);
     noTone(GPIO_PIN_BUZZER);
   }
-  #endif
+#endif /* GPIO_PIN_BUZZER */
   //inital state variables, maybe move elsewhere?
   for (int i = 0; i < 2; i++) // sometimes OpenTX ignores our packets (not sure why yet...)
   {
@@ -521,7 +528,7 @@ void HandleUpdateParameter()
     break;
   }
   UpdateParamReq = false;
-  
+
   if (config.IsModified())
   {
     // Stop the timer during eeprom writes
@@ -550,24 +557,49 @@ void setup()
   Serial.begin(115200);
 #endif
 
+#ifdef GPIO_PIN_LED_GREEN
+  pinMode(GPIO_PIN_LED_GREEN, OUTPUT);
+  digitalWrite(GPIO_PIN_LED_GREEN, HIGH);
+#endif
+#ifdef GPIO_PIN_LED_RED
+  pinMode(GPIO_PIN_LED_RED, OUTPUT);
+#endif
+#if WS2812_LED_IS_USED // do startup blinkies for fun
+    uint32_t col = 0x0000FF;
+    for (uint8_t j = 0; j < 3; j++)
+    {
+        for (uint8_t i = 0; i < 5; i++)
+        {
+            WS281BsetLED(col << j*8);
+            delay(15);
+            WS281BsetLED(0, 0, 0);
+            delay(35);
+        }
+    }
+#endif /* WS2812_LED_IS_USED */
+
+#if defined(TARGET_R9M_TX) || defined(TARGET_NAMIMNO_ALPHA_TX)
+  R9DAC.init();
+#endif
+
 #if defined(TARGET_R9M_TX) || defined(TARGET_R9M_LITE_TX) || defined(TARGET_R9M_LITE_PRO_TX) || defined(TARGET_RX_GHOST_ATTO_V1)
-
-    pinMode(GPIO_PIN_LED_GREEN, OUTPUT);
-    pinMode(GPIO_PIN_LED_RED, OUTPUT);
-    digitalWrite(GPIO_PIN_LED_GREEN, HIGH);
-
 #ifdef USE_ESP8266_BACKPACK
-    HardwareSerial(USART1);
+    // USART1
     Serial.begin(460800);
 #else
-    HardwareSerial(USART2);
+    // USART2
     Serial.setTx(PA2);
     Serial.setRx(PA3);
     Serial.begin(400000);
 #endif
-    
+#elif defined(GPIO_PIN_DEBUG_RX) && defined(GPIO_PIN_DEBUG_TX)
+  /* Init backpack link */
+  Serial.setTx(GPIO_PIN_DEBUG_TX);
+  Serial.setRx(GPIO_PIN_DEBUG_RX);
+  Serial.begin(460800);
+#endif
 
-#if defined(TARGET_R9M_TX)
+#if defined(GPIO_PIN_BUZZER)
     // Annoying startup beeps
   #ifndef JUST_BEEP_ONCE
     pinMode(GPIO_PIN_BUZZER, OUTPUT);
@@ -597,13 +629,13 @@ void setup()
     delay(200);
     tone(GPIO_PIN_BUZZER, 480, 200);
   #endif
-  button.init(GPIO_PIN_BUTTON, true); // r9 tx appears to be active high
-  R9DAC.init();
-#endif
 
   tone(GPIO_PIN_BUZZER, 1000, 10000);
   delay(10000);
+#endif /* GPIO_PIN_BUZZER */
 
+#if defined(GPIO_PIN_BUTTON) && (GPIO_PIN_BUTTON != UNDEF_PIN)
+  button.init(GPIO_PIN_BUTTON, true); // r9 tx appears to be active high
 #endif
 
 #ifdef PLATFORM_ESP32
@@ -640,15 +672,23 @@ void setup()
   bool init_success = Radio.Begin();
   while (!init_success)
   {
-    #if defined(TARGET_R9M_TX)
+    #if defined(GPIO_PIN_LED_GREEN)
     digitalWrite(GPIO_PIN_LED_GREEN, LOW);
-    tone(GPIO_PIN_BUZZER, 480, 200);
-    digitalWrite(GPIO_PIN_LED_RED, LOW);
-    delay(200);
-    tone(GPIO_PIN_BUZZER, 400, 200);
-    digitalWrite(GPIO_PIN_LED_RED, HIGH);
-    delay(1000);
     #endif
+    #if defined(GPIO_PIN_BUZZER)
+    tone(GPIO_PIN_BUZZER, 480, 200);
+    #endif
+    #if defined(GPIO_PIN_LED_RED)
+    digitalWrite(GPIO_PIN_LED_RED, LOW);
+    #endif
+    delay(200);
+    #if defined(GPIO_PIN_BUZZER)
+    tone(GPIO_PIN_BUZZER, 400, 200);
+    #endif
+    #if defined(GPIO_PIN_LED_RED)
+    digitalWrite(GPIO_PIN_LED_RED, HIGH);
+    #endif
+    delay(1000);
   }
   POWERMGNT.setDefaultPower();
 
@@ -705,14 +745,14 @@ void loop()
   if (millis() > (RX_CONNECTION_LOST_TIMEOUT + LastTLMpacketRecvMillis))
   {
     connectionState = disconnected;
-    #if defined(TARGET_R9M_TX) || defined(TARGET_R9M_LITE_TX) || defined(TARGET_R9M_LITE_PRO_TX) || defined(TARGET_RX_GHOST_ATTO_V1)
+    #if defined(GPIO_PIN_LED_RED)
     digitalWrite(GPIO_PIN_LED_RED, LOW);
     #endif
   }
   else
   {
     connectionState = connected;
-    #if defined(TARGET_R9M_TX) || defined(TARGET_R9M_LITE_TX) || defined(TARGET_R9M_LITE_PRO_TX) || defined(TARGET_RX_GHOST_ATTO_V1)
+    #if defined(GPIO_PIN_LED_RED)
     digitalWrite(GPIO_PIN_LED_RED, HIGH);
     #endif
   }
@@ -723,9 +763,9 @@ void loop()
   crsf.sendSyncPacketToTX();
   #endif
   crsf.UARTwdt();
-  #ifdef TARGET_R9M_TX
+#endif
+#if defined(GPIO_PIN_BUTTON) && (GPIO_PIN_BUTTON != UNDEF_PIN)
   button.handle();
-  #endif
 #endif
 
   if (Serial.available())

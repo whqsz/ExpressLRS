@@ -58,6 +58,10 @@ PowerLevels_e POWERMGNT::setPower(PowerLevels_e Power)
         Power = (PowerLevels_e)MaxPower;
     }
 
+#ifdef GPIO_PIN_FAN_EN
+    (Power >= PWR_250mW) ? digitalWrite(GPIO_PIN_FAN_EN, HIGH) : digitalWrite(GPIO_PIN_FAN_EN, LOW);
+#endif
+
 #if defined(TARGET_TX_ESP32_SX1280_V1) || defined(TARGET_RX_ESP8266_SX1280_V1)
     switch (Power)
     {
@@ -74,13 +78,10 @@ PowerLevels_e POWERMGNT::setPower(PowerLevels_e Power)
     return CurrentPower;
 #endif
 
-#ifdef TARGET_R9M_TX
+#ifdef TARGET_R9M_TX || defined(TARGET_NAMIMNO_ALPHA_TX)
     Radio.SetOutputPower(0b0000);
     R9DAC.setPower((DAC_PWR_)Power);
     CurrentPower = Power;
-#ifdef GPIO_PIN_FAN_EN
-    (Power >= PWR_250mW) ? digitalWrite(GPIO_PIN_FAN_EN, HIGH) : digitalWrite(GPIO_PIN_FAN_EN, LOW);
-#endif
     return CurrentPower;
 #endif
 
