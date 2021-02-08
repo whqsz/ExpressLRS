@@ -406,7 +406,7 @@ void sendLuaParams()
 
 void UARTdisconnected()
 {
-#ifdef GPIO_PIN_BUZZER && (GPIO_PIN_BUZZER != UNDEF_PIN)
+#if defined(GPIO_PIN_BUZZER) && (GPIO_PIN_BUZZER != UNDEF_PIN)
   const uint16_t beepFreq[] = {676, 520};
   const uint16_t beepDurations[] = {300, 150};
   for (int i = 0; i < 2; i++)
@@ -556,6 +556,22 @@ void setup()
 #ifdef PLATFORM_ESP32
   Serial.begin(115200);
 #endif
+#if defined(TARGET_R9M_TX) || defined(TARGET_R9M_LITE_TX) || defined(TARGET_R9M_LITE_PRO_TX) || defined(TARGET_RX_GHOST_ATTO_V1)
+  #ifdef USE_ESP8266_BACKPACK
+    // USART1
+    Serial.begin(460800);
+  #else
+    // USART2
+    Serial.setTx(PA2);
+    Serial.setRx(PA3);
+    Serial.begin(400000);
+  #endif
+#elif defined(GPIO_PIN_DEBUG_RX) && defined(GPIO_PIN_DEBUG_TX)
+  /* Init backpack link */
+  Serial.setTx(GPIO_PIN_DEBUG_TX);
+  Serial.setRx(GPIO_PIN_DEBUG_RX);
+  Serial.begin(460800);
+#endif
 
 #ifdef GPIO_PIN_LED_GREEN
   pinMode(GPIO_PIN_LED_GREEN, OUTPUT);
@@ -565,38 +581,21 @@ void setup()
   pinMode(GPIO_PIN_LED_RED, OUTPUT);
 #endif
 #if WS2812_LED_IS_USED // do startup blinkies for fun
-    uint32_t col = 0x0000FF;
-    for (uint8_t j = 0; j < 3; j++)
-    {
-        for (uint8_t i = 0; i < 5; i++)
-        {
-            WS281BsetLED(col << j*8);
-            delay(15);
-            WS281BsetLED(0, 0, 0);
-            delay(35);
-        }
-    }
+  uint32_t col = 0x0000FF;
+  for (uint8_t j = 0; j < 3; j++)
+  {
+      for (uint8_t i = 0; i < 5; i++)
+      {
+          WS281BsetLED(col << j*8);
+          delay(15);
+          WS281BsetLED(0, 0, 0);
+          delay(35);
+      }
+  }
 #endif /* WS2812_LED_IS_USED */
 
 #if defined(TARGET_R9M_TX) || defined(TARGET_NAMIMNO_ALPHA_TX)
   R9DAC.init();
-#endif
-
-#if defined(TARGET_R9M_TX) || defined(TARGET_R9M_LITE_TX) || defined(TARGET_R9M_LITE_PRO_TX) || defined(TARGET_RX_GHOST_ATTO_V1)
-#ifdef USE_ESP8266_BACKPACK
-    // USART1
-    Serial.begin(460800);
-#else
-    // USART2
-    Serial.setTx(PA2);
-    Serial.setRx(PA3);
-    Serial.begin(400000);
-#endif
-#elif defined(GPIO_PIN_DEBUG_RX) && defined(GPIO_PIN_DEBUG_TX)
-  /* Init backpack link */
-  Serial.setTx(GPIO_PIN_DEBUG_TX);
-  Serial.setRx(GPIO_PIN_DEBUG_RX);
-  Serial.begin(460800);
 #endif
 
 #if defined(GPIO_PIN_BUZZER)

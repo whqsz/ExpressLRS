@@ -195,8 +195,14 @@ Designed by NamimnoRC
 /* FAN: https://github.com/AlessandroAU/ExpressLRS/wiki/R9M-Fan-Mod-Cover */
 #define GPIO_PIN_FAN_EN         PB1
 /* Backpack logger connection */
+#ifdef USE_ESP8266_BACKPACK
 #define GPIO_PIN_DEBUG_RX       PA10
 #define GPIO_PIN_DEBUG_TX       PA9
+#else
+//
+#define GPIO_PIN_DEBUG_RX       PA3
+#define GPIO_PIN_DEBUG_TX       PA2
+#endif
 /* WS2812 led */
 #define GPIO_PIN_LED_WS2812      PB0
 #define GPIO_PIN_LED_WS2812_FAST PB_0

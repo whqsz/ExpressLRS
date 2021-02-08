@@ -735,6 +735,7 @@ void ICACHE_RAM_ATTR CRSF::sendSyncPacketToTX(void *pvParameters) // in values i
                 Serial.println("Start STM32 R9M TX CRSF UART");
 
                 pinMode(BUFFER_OE, OUTPUT);
+                digitalWrite(BUFFER_OE, BUFFER_OE_INVERTED);
 
                 CRSF::Port.setTx(GPIO_PIN_RCSIGNAL_TX);
                 CRSF::Port.setRx(GPIO_PIN_RCSIGNAL_RX);
