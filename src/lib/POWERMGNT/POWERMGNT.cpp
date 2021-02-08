@@ -78,7 +78,7 @@ PowerLevels_e POWERMGNT::setPower(PowerLevels_e Power)
     return CurrentPower;
 #endif
 
-#ifdef TARGET_R9M_TX || defined(TARGET_NAMIMNO_ALPHA_TX)
+#if defined(TARGET_R9M_TX) || defined(TARGET_NAMIMNO_ALPHA_TX)
     Radio.SetOutputPower(0b0000);
     R9DAC.setPower((DAC_PWR_)Power);
     CurrentPower = Power;

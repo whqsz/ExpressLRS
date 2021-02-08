@@ -191,7 +191,7 @@ Designed by NamimnoRC
 #define GPIO_PIN_RCSIGNAL_RX    PB11 /* USART3 */
 #define GPIO_PIN_RCSIGNAL_TX    PB10 /* USART3 */
 #define BUFFER_OE               PA1
-#define BUFFER_OE_INVERTED      1
+#define BUFFER_OE_INVERTED      0
 /* FAN: https://github.com/AlessandroAU/ExpressLRS/wiki/R9M-Fan-Mod-Cover */
 #define GPIO_PIN_FAN_EN         PB1
 /* Backpack logger connection */
